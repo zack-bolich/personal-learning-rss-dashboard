@@ -84,6 +84,7 @@ button {
 }
 
 .primary,
+.secondary,
 .segmented button,
 .icon-button,
 .nav-item,
@@ -112,6 +113,16 @@ button {
 .primary:disabled {
   cursor: wait;
   opacity: 0.72;
+}
+
+.secondary {
+  align-items: center;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 7px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 11px;
 }
 
 .spin {
@@ -183,6 +194,8 @@ button {
 }
 
 select,
+textarea,
+.stacked-form input,
 .search-box input {
   width: 100%;
   border: 1px solid #d5cec1;
@@ -194,6 +207,44 @@ select,
 select {
   min-height: 40px;
   padding: 0 10px;
+}
+
+textarea,
+.stacked-form input {
+  margin-top: 5px;
+  padding: 9px 10px;
+}
+
+textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.stacked-form {
+  border-top: 1px solid #e5e0d7;
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.stacked-form label {
+  color: #4b5563;
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.stacked-form input[type="color"] {
+  height: 36px;
+  padding: 3px;
+}
+
+.form-row {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr auto;
 }
 
 .tag-cloud {

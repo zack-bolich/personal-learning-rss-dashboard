@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS categories (
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   color TEXT NOT NULL DEFAULT '#64748b',
-  sort_order INTEGER NOT NULL DEFAULT 0
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  user_created INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS feeds (
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS feeds (
   url TEXT NOT NULL UNIQUE,
   site_url TEXT,
   notes TEXT NOT NULL DEFAULT '',
-  project_interest INTEGER NOT NULL DEFAULT 0,
+  priority INTEGER NOT NULL DEFAULT 0,
   active INTEGER NOT NULL DEFAULT 1,
   last_fetched_at TEXT,
   last_error TEXT,

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local RSS learning dashboard organized around current projects and interests.",
+  "description": "Local-first RSS learning dashboard with user-defined interest categories.",
   "engines": {
     "node": ">=24"
   },

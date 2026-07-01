@@ -1,18 +1,17 @@
-# Personal Learning RSS Dashboard
+# Learning RSS Dashboard
 
-A local web app that collects RSS feeds into learning categories, stores articles in SQLite, and gives you a small daily queue across your current interests and projects.
+A local-first web app that collects RSS feeds into user-defined learning categories, stores articles in SQLite, and builds a small daily queue across your interests.
 
 ## What It Includes
 
 - React dashboard with category, source, status, tag, and keyword filters.
+- UI forms for adding custom interest categories and RSS feeds.
 - Express API with scheduled RSS fetching.
 - SQLite database stored locally at `data/learning-rss.sqlite`.
-- Starter feeds in `server/feeds.seed.json`.
+- Public-safe starter feeds in `server/feeds.seed.json`.
 - Article actions for read, saved, and important.
 - Automatic tags from keyword matching.
-- A "Today’s Learning Queue" that prefers unread, high-signal, project-relevant articles from different categories.
-
-The seed list reflects the workspace projects found next to this app: Rustchain, BeaconAtlas, crypto MCP work, Tent of Trials, and Love Thy Neighbor WordPress/nonprofit work.
+- A "Today's Learning Queue" that prefers unread, high-signal articles from different categories.
 
 ## Requirements
 
@@ -29,7 +28,7 @@ From this folder:
 npm.cmd install
 ```
 
-PowerShell may block `npm.ps1` on this machine, so `npm.cmd` is the reliable command.
+PowerShell may block `npm.ps1` on some Windows machines, so `npm.cmd` is the reliable command.
 
 ## Run In Development
 
@@ -59,8 +58,6 @@ npm.cmd run check
 npm.cmd run build
 ```
 
-`npm.cmd run fetch` is useful after editing the seed list.
-
 After `npm.cmd run build`, one server can run both the API and built dashboard:
 
 ```powershell
@@ -79,9 +76,11 @@ To start the built server in the background:
 npm.cmd run serve:background
 ```
 
-## Edit Or Add Feeds
+## Add Categories And Feeds
 
-Edit:
+Use the sidebar forms to add a new interest category or attach an RSS feed to a category. These changes are stored in your local SQLite database.
+
+The starter feed list is also editable:
 
 ```text
 server/feeds.seed.json
@@ -96,11 +95,11 @@ Add a feed inside the best category:
   "url": "https://example.com/feed.xml",
   "siteUrl": "https://example.com/",
   "notes": "Why this feed belongs here.",
-  "projectInterest": true
+  "priority": true
 }
 ```
 
-Use `projectInterest: true` for feeds that directly support current projects. After editing, run:
+Use `priority: true` for feeds that should receive a small ranking boost in the learning queue. After editing, run:
 
 ```powershell
 npm.cmd run seed
@@ -117,7 +116,7 @@ server/schema.sql
 
 Main tables:
 
-- `categories`: learning buckets such as Software Development or AI and Automation.
+- `categories`: learning buckets and user-created interest categories.
 - `feeds`: RSS feed subscriptions and fetch status.
 - `articles`: local article cache with read, saved, important, score, and future `ai_summary` fields.
 - `article_tags`: many-to-many article tags generated from keywords.
@@ -127,6 +126,10 @@ Main tables:
 - `GET /api/meta`: categories, feeds, tags, and counts.
 - `GET /api/articles`: filterable article list.
 - `GET /api/learning-queue?limit=8`: daily learning picks.
+- `POST /api/categories`: add a category with `name`, `description`, and `color`.
+- `PATCH /api/categories/:id`: update a category.
+- `DELETE /api/categories/:id`: delete a category and its feeds/articles.
+- `POST /api/feeds`: add a feed with `categoryId`, `title`, `url`, optional `siteUrl`, and optional `priority`.
 - `POST /api/fetch`: fetch all active feeds now.
 - `PATCH /api/articles/:id`: update `isRead`, `isSaved`, or `isImportant`.
 
@@ -135,6 +138,18 @@ Example:
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3001/api/articles
 ```
+
+## Public Sharing Notes
+
+This repository intentionally ignores local data and generated files:
+
+- `data/*.sqlite`
+- `node_modules/`
+- `dist/`
+- `*.log`
+- `.env`
+
+The starter feeds are generic and public-safe. Any private categories, feeds, saved articles, or read state live only in the local SQLite database.
 
 ## Later Additions
 

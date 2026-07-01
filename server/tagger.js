@@ -4,7 +4,7 @@ const TAG_KEYWORDS = [
   ["react", ["react", "jsx", "hooks", "server components"]],
   ["react-native", ["react native", "expo", "mobile app", "ios", "android"]],
   ["database", ["sqlite", "mongodb", "postgres", "database", "schema"]],
-  ["github-codex", ["github", "pull request", "actions", "copilot", "codex", "code review"]],
+  ["developer-tools", ["github", "pull request", "actions", "copilot", "codex", "code review"]],
   ["agentic-ai", ["agent", "agents", "agentic", "tool use", "mcp", "multi-agent"]],
   ["local-llm", ["local llm", "ollama", "llama", "quantization", "gguf", "inference"]],
   ["comfyui", ["comfyui", "stable diffusion", "workflow", "image generation"]],
@@ -17,20 +17,11 @@ const TAG_KEYWORDS = [
   ["etf", ["etf", "index fund", "fund flows"]],
   ["trading", ["swing trading", "technical analysis", "breakout", "setup", "stop loss"]],
   ["risk", ["risk management", "position sizing", "drawdown", "volatility", "portfolio"]],
-  ["crypto", ["crypto", "bitcoin", "ethereum", "coinbase", "robinhood", "solana"]],
-  ["catholic", ["catholic", "vatican", "pope", "saint", "mass", "eucharist"]],
-  ["scripture", ["scripture", "gospel", "psalm", "readings", "bible"]],
-  ["recovery", ["recovery", "aa", "twelve step", "sobriety", "codependency"]],
-  ["spiritual-discipline", ["prayer", "discipline", "discernment", "virtue", "habit"]]
+  ["crypto", ["crypto", "bitcoin", "ethereum", "solana"]],
+  ["personal-growth", ["habit", "learning", "focus", "mindfulness", "wellbeing", "productivity"]]
 ];
 
-const PROJECT_KEYWORDS = [
-  "rustchain",
-  "depin",
-  "hardware",
-  "mining",
-  "wallet",
-  "beacon",
+const FOCUS_KEYWORDS = [
   "mcp",
   "trading",
   "risk",
@@ -61,12 +52,12 @@ export function tagArticle(article, feed) {
     }
   }
 
-  if (feed.project_interest) {
-    tags.add("project-interest");
+  if (feed.priority) {
+    tags.add("priority-source");
   }
 
-  if (PROJECT_KEYWORDS.some((keyword) => haystack.includes(keyword))) {
-    tags.add("workspace-relevant");
+  if (FOCUS_KEYWORDS.some((keyword) => haystack.includes(keyword))) {
+    tags.add("focus-match");
   }
 
   return [...tags].sort();
@@ -76,10 +67,10 @@ export function scoreArticle(article, feed, tags) {
   let score = 20;
   const text = `${article.title} ${article.summary}`.toLowerCase();
 
-  // These weights make the learning queue prefer practical, build-useful articles.
-  if (feed.project_interest) score += 20;
-  if (tags.includes("workspace-relevant")) score += 15;
-  if (tags.includes("github-codex") || tags.includes("agentic-ai")) score += 10;
+  // These weights make the learning queue prefer practical, high-signal articles.
+  if (feed.priority) score += 20;
+  if (tags.includes("focus-match")) score += 15;
+  if (tags.includes("developer-tools") || tags.includes("agentic-ai")) score += 10;
   if (tags.includes("risk") || tags.includes("accessibility")) score += 8;
   if (/\b(tutorial|guide|how to|release|deep dive|case study|checklist)\b/.test(text)) score += 10;
   if (/\b(sponsored|webinar|sale|coupon)\b/.test(text)) score -= 8;

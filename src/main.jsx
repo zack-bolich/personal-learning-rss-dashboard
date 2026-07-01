@@ -6,6 +6,7 @@ import {
   Circle,
   ExternalLink,
   Filter,
+  Plus,
   RefreshCw,
   Search,
   Star,
@@ -29,7 +30,14 @@ async function api(path, options) {
     headers: { "Content-Type": "application/json" },
     ...options
   });
-  if (!response.ok) throw new Error(await response.text());
+  if (!response.ok) {
+    const message = await response.text();
+    let errorMessage = message;
+    try {
+      errorMessage = JSON.parse(message).error || message;
+    } catch {}
+    throw new Error(errorMessage);
+  }
   return response.json();
 }
 
@@ -40,6 +48,16 @@ function App() {
   const [loading, setLoading] = React.useState(true);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [categoryForm, setCategoryForm] = React.useState({
+    name: "",
+    description: "",
+    color: "#2563eb"
+  });
+  const [feedForm, setFeedForm] = React.useState({
+    title: "",
+    url: "",
+    categoryId: ""
+  });
   const [filters, setFilters] = React.useState({
     category: "",
     source: "",
@@ -74,6 +92,12 @@ function App() {
     load();
   }, [load]);
 
+  React.useEffect(() => {
+    if (!feedForm.categoryId && meta?.categories?.length) {
+      setFeedForm((value) => ({ ...value, categoryId: meta.categories[0].id }));
+    }
+  }, [feedForm.categoryId, meta]);
+
   async function fetchNow() {
     setFetching(true);
     setError("");
@@ -98,6 +122,41 @@ function App() {
     setMeta(await api("/api/meta"));
   }
 
+  async function submitCategory(event) {
+    event.preventDefault();
+    setError("");
+    try {
+      const category = await api("/api/categories", {
+        method: "POST",
+        body: JSON.stringify(categoryForm)
+      });
+      setCategoryForm({ name: "", description: "", color: "#2563eb" });
+      setFilters((value) => ({ ...value, category: category.id, source: "" }));
+      setFeedForm((value) => ({ ...value, categoryId: category.id }));
+      await load();
+    } catch (categoryError) {
+      setError(categoryError.message);
+    }
+  }
+
+  async function submitFeed(event) {
+    event.preventDefault();
+    setError("");
+    try {
+      await api("/api/feeds", {
+        method: "POST",
+        body: JSON.stringify({
+          ...feedForm,
+          categoryId: feedForm.categoryId || filters.category || meta?.categories?.[0]?.id
+        })
+      });
+      setFeedForm((value) => ({ ...value, title: "", url: "" }));
+      await load();
+    } catch (feedError) {
+      setError(feedError.message);
+    }
+  }
+
   const categoryFeeds = React.useMemo(() => {
     if (!meta) return [];
     return filters.category
@@ -109,7 +168,7 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Personal learning RSS</p>
+          <p className="eyebrow">Learning RSS</p>
           <h1>Learning Dashboard</h1>
         </div>
         <div className="topbar-actions">
@@ -153,6 +212,40 @@ function App() {
                 <strong>{category.unreadCount || 0}</strong>
               </button>
             ))}
+            <form className="stacked-form" onSubmit={submitCategory}>
+              <label>
+                Add category
+                <input
+                  value={categoryForm.name}
+                  onChange={(event) => setCategoryForm((value) => ({ ...value, name: event.target.value }))}
+                  placeholder="Example: Design Systems"
+                  required
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  value={categoryForm.description}
+                  onChange={(event) => setCategoryForm((value) => ({ ...value, description: event.target.value }))}
+                  placeholder="What this interest area should collect"
+                  rows={3}
+                />
+              </label>
+              <div className="form-row">
+                <label>
+                  Color
+                  <input
+                    type="color"
+                    value={categoryForm.color}
+                    onChange={(event) => setCategoryForm((value) => ({ ...value, color: event.target.value }))}
+                  />
+                </label>
+                <button className="secondary" type="submit">
+                  <Plus size={16} />
+                  Add
+                </button>
+              </div>
+            </form>
           </section>
 
           <section className="filter-section">
@@ -168,6 +261,44 @@ function App() {
                 </option>
               ))}
             </select>
+            <form className="stacked-form" onSubmit={submitFeed}>
+              <label>
+                Add feed
+                <input
+                  value={feedForm.title}
+                  onChange={(event) => setFeedForm((value) => ({ ...value, title: event.target.value }))}
+                  placeholder="Feed title"
+                  required
+                />
+              </label>
+              <label>
+                RSS URL
+                <input
+                  type="url"
+                  value={feedForm.url}
+                  onChange={(event) => setFeedForm((value) => ({ ...value, url: event.target.value }))}
+                  placeholder="https://example.com/feed.xml"
+                  required
+                />
+              </label>
+              <label>
+                Category
+                <select
+                  value={feedForm.categoryId || filters.category || meta?.categories?.[0]?.id || ""}
+                  onChange={(event) => setFeedForm((value) => ({ ...value, categoryId: event.target.value }))}
+                >
+                  {meta?.categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button className="secondary" type="submit">
+                <Plus size={16} />
+                Add feed
+              </button>
+            </form>
           </section>
 
           <section className="filter-section">

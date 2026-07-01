@@ -15,7 +15,7 @@ const REQUEST_HEADERS = {
   Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
 };
 
-const FEED_TIMEOUT_MS = Number(process.env.FEED_TIMEOUT_MS || 25000);
+const FEED_TIMEOUT_MS = Number(process.env.FEED_TIMEOUT_MS || 45000);
 const FETCH_CONCURRENCY = Math.max(1, Number(process.env.FETCH_CONCURRENCY || 6));
 
 function normalizeDate(item) {

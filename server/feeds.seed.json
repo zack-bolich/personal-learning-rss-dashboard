@@ -3,7 +3,7 @@
     {
       "id": "software-development",
       "name": "Software Development",
-      "description": "Python, JavaScript, React, React Native, Django, Node, MongoDB, GitHub, Codex, and daily builder craft.",
+      "description": "Programming languages, frameworks, databases, version control, and engineering practice.",
       "color": "#2563eb",
       "sortOrder": 10,
       "feeds": [
@@ -12,7 +12,8 @@
           "title": "Python Insider",
           "url": "https://blog.python.org/feeds/posts/default?alt=rss",
           "siteUrl": "https://blog.python.org/",
-          "notes": "Official Python release and ecosystem updates."
+          "notes": "Official Python release and ecosystem updates.",
+          "priority": true
         },
         {
           "id": "real-python",
@@ -26,7 +27,8 @@
           "title": "React Blog",
           "url": "https://react.dev/rss.xml",
           "siteUrl": "https://react.dev/blog",
-          "notes": "Official React news and release notes."
+          "notes": "Official React news and release notes.",
+          "priority": true
         },
         {
           "id": "react-native-blog",
@@ -54,7 +56,8 @@
           "title": "Node.js Blog",
           "url": "https://nodejs.org/en/feed/blog.xml",
           "siteUrl": "https://nodejs.org/en/blog",
-          "notes": "Node.js release and platform updates."
+          "notes": "Node.js release and platform updates.",
+          "priority": true
         },
         {
           "id": "mongodb-developer",
@@ -68,31 +71,28 @@
           "title": "GitHub Engineering",
           "url": "https://github.blog/engineering/feed/",
           "siteUrl": "https://github.blog/engineering/",
-          "notes": "GitHub engineering posts, useful for Codex and tooling work.",
-          "projectInterest": true
+          "notes": "Engineering posts from GitHub."
         },
         {
           "id": "github-changelog",
           "title": "GitHub Changelog",
           "url": "https://github.blog/changelog/feed/",
           "siteUrl": "https://github.blog/changelog/",
-          "notes": "GitHub product changes that affect repo, PR, and Codex workflows.",
-          "projectInterest": true
+          "notes": "GitHub product and platform changes."
         },
         {
           "id": "rust-blog",
           "title": "Rust Blog",
           "url": "https://blog.rust-lang.org/feed.xml",
           "siteUrl": "https://blog.rust-lang.org/",
-          "notes": "Rust language updates relevant to Rustchain and Tent of Trials.",
-          "projectInterest": true
+          "notes": "Rust language and tooling updates."
         }
       ]
     },
     {
       "id": "ai-automation",
       "name": "AI and Automation",
-      "description": "Agentic AI, local LLMs, Ollama, RunPod, ComfyUI, TTS, and AI-assisted research/trading.",
+      "description": "AI applications, local models, agent frameworks, automation tooling, and research feeds.",
       "color": "#7c3aed",
       "sortOrder": 20,
       "feeds": [
@@ -101,46 +101,44 @@
           "title": "OpenAI News",
           "url": "https://openai.com/news/rss.xml",
           "siteUrl": "https://openai.com/news/",
-          "notes": "OpenAI model, API, and Codex-adjacent updates.",
-          "projectInterest": true
+          "notes": "OpenAI product, research, and API updates.",
+          "priority": true
         },
         {
           "id": "github-ai-ml",
           "title": "GitHub AI and ML",
           "url": "https://github.blog/ai-and-ml/feed/",
           "siteUrl": "https://github.blog/ai-and-ml/",
-          "notes": "AI coding and developer tooling trends.",
-          "projectInterest": true
+          "notes": "AI-assisted development and machine learning posts."
         },
         {
           "id": "hugging-face-blog",
           "title": "Hugging Face Blog",
           "url": "https://huggingface.co/blog/feed.xml",
           "siteUrl": "https://huggingface.co/blog",
-          "notes": "Open model, local LLM, and agent ecosystem updates."
+          "notes": "Open model and machine learning ecosystem updates.",
+          "priority": true
         },
         {
           "id": "simon-willison",
           "title": "Simon Willison",
           "url": "https://simonwillison.net/atom/everything/",
           "siteUrl": "https://simonwillison.net/",
-          "notes": "Sharp AI, LLM, and software development analysis."
+          "notes": "AI, LLM, and software development analysis."
         },
         {
           "id": "ollama-releases",
           "title": "Ollama Releases",
           "url": "https://github.com/ollama/ollama/releases.atom",
           "siteUrl": "https://github.com/ollama/ollama/releases",
-          "notes": "Local LLM runtime releases.",
-          "projectInterest": true
+          "notes": "Local LLM runtime releases."
         },
         {
           "id": "comfyui-releases",
           "title": "ComfyUI Releases",
           "url": "https://github.com/comfyanonymous/ComfyUI/releases.atom",
           "siteUrl": "https://github.com/comfyanonymous/ComfyUI/releases",
-          "notes": "ComfyUI releases for image/video workflows.",
-          "projectInterest": true
+          "notes": "ComfyUI releases for image and workflow automation."
         },
         {
           "id": "runpod-blog",
@@ -155,14 +153,14 @@
           "url": "https://www.langchain.com/blog/rss.xml",
           "siteUrl": "https://www.langchain.com/blog",
           "notes": "Agent frameworks and LLM application patterns.",
-          "projectInterest": true
+          "priority": true
         },
         {
           "id": "arxiv-ai",
           "title": "arXiv Artificial Intelligence",
           "url": "https://export.arxiv.org/rss/cs.AI",
           "siteUrl": "https://arxiv.org/list/cs.AI/recent",
-          "notes": "Research feed for AI systems and agents."
+          "notes": "Research feed for AI systems and methods."
         },
         {
           "id": "arxiv-machine-learning",
@@ -174,9 +172,9 @@
       ]
     },
     {
-      "id": "wordpress-nonprofit",
-      "name": "WordPress / Nonprofit Web",
-      "description": "WordPress, Gutenberg, Kadence, SEO, nonprofit websites, accessibility, QR codes, and donation pages.",
+      "id": "web-publishing",
+      "name": "Web Publishing",
+      "description": "WordPress, content systems, SEO, accessibility, nonprofit technology, and practical publishing workflows.",
       "color": "#059669",
       "sortOrder": 30,
       "feeds": [
@@ -193,14 +191,14 @@
           "url": "https://developer.wordpress.org/news/feed/",
           "siteUrl": "https://developer.wordpress.org/news/",
           "notes": "Block editor and WordPress development guidance.",
-          "projectInterest": true
+          "priority": true
         },
         {
           "id": "make-wordpress-core",
           "title": "Make WordPress Core",
           "url": "https://make.wordpress.org/core/feed/",
           "siteUrl": "https://make.wordpress.org/core/",
-          "notes": "Core and Gutenberg planning notes."
+          "notes": "Core and editor planning notes."
         },
         {
           "id": "gutenberg-times",
@@ -214,8 +212,7 @@
           "title": "Kadence Blog",
           "url": "https://www.kadencewp.com/feed/",
           "siteUrl": "https://www.kadencewp.com/blog/",
-          "notes": "Kadence theme and blocks learning for Love Thy Neighbor.",
-          "projectInterest": true
+          "notes": "Theme, block, and site-building posts."
         },
         {
           "id": "google-search-central",
@@ -230,7 +227,7 @@
           "url": "https://webaim.org/blog/feed/",
           "siteUrl": "https://webaim.org/blog/",
           "notes": "Accessibility learning and audits.",
-          "projectInterest": true
+          "priority": true
         },
         {
           "id": "a11y-project",
@@ -244,15 +241,14 @@
           "title": "Nonprofit Tech for Good",
           "url": "https://www.nptechforgood.com/feed/",
           "siteUrl": "https://www.nptechforgood.com/",
-          "notes": "Nonprofit website and fundraising education.",
-          "projectInterest": true
+          "notes": "Nonprofit technology and digital communications."
         }
       ]
     },
     {
-      "id": "investing-trading",
-      "name": "Investing and Trading Education",
-      "description": "ETFs, swing trading, crypto, Bitcoin, portfolio management, risk management, Robinhood, and Coinbase learning.",
+      "id": "investing-markets",
+      "name": "Investing and Markets",
+      "description": "Market education, portfolio management, risk management, ETFs, crypto, and investor protection.",
       "color": "#d97706",
       "sortOrder": 40,
       "feeds": [
@@ -261,7 +257,8 @@
           "title": "Bogleheads Blog",
           "url": "https://www.bogleheads.org/blog/feed/",
           "siteUrl": "https://www.bogleheads.org/blog/",
-          "notes": "Long-term portfolio management and investor education."
+          "notes": "Long-term portfolio management and investor education.",
+          "priority": true
         },
         {
           "id": "etf-trends",
@@ -289,7 +286,7 @@
           "title": "CoinDesk",
           "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
           "siteUrl": "https://www.coindesk.com/",
-          "notes": "Crypto market news and learning."
+          "notes": "Crypto market news and education."
         },
         {
           "id": "bitcoin-magazine",
@@ -303,15 +300,14 @@
           "title": "Decrypt",
           "url": "https://decrypt.co/feed",
           "siteUrl": "https://decrypt.co/",
-          "notes": "Crypto education and market context; used because Coinbase blocks RSS fetches.",
-          "projectInterest": true
+          "notes": "Crypto news and education."
         },
         {
           "id": "robinhood-newsroom",
           "title": "The College Investor",
           "url": "https://thecollegeinvestor.com/feed/",
           "siteUrl": "https://thecollegeinvestor.com/",
-          "notes": "Beginner-friendly investing education; used because Robinhood does not expose a stable public RSS feed."
+          "notes": "Beginner-friendly investing education."
         },
         {
           "id": "investor-gov",
@@ -319,71 +315,6 @@
           "url": "https://www.sec.gov/news/pressreleases.rss",
           "siteUrl": "https://www.sec.gov/newsroom/press-releases",
           "notes": "Regulatory context and investor protection signals."
-        }
-      ]
-    },
-    {
-      "id": "faith-recovery-growth",
-      "name": "Recovery / Catholic Faith / Personal Growth",
-      "description": "Catholic learning, scripture study, saints, AA and recovery reflections, codependency recovery, and spiritual discipline.",
-      "color": "#be123c",
-      "sortOrder": 50,
-      "feeds": [
-        {
-          "id": "usccb-readings",
-          "title": "USCCB Daily Readings",
-          "url": "https://bible.usccb.org/readings.rss",
-          "siteUrl": "https://bible.usccb.org/",
-          "notes": "Daily Catholic scripture readings."
-        },
-        {
-          "id": "vatican-news",
-          "title": "Vatican News",
-          "url": "https://www.vaticannews.va/en.rss.xml",
-          "siteUrl": "https://www.vaticannews.va/en.html",
-          "notes": "Catholic global news and teaching context."
-        },
-        {
-          "id": "word-on-fire",
-          "title": "Word on Fire",
-          "url": "https://www.wordonfire.org/feed/",
-          "siteUrl": "https://www.wordonfire.org/",
-          "notes": "Catholic formation and culture."
-        },
-        {
-          "id": "catholic-answers",
-          "title": "Catholic Exchange",
-          "url": "https://catholicexchange.com/feed/",
-          "siteUrl": "https://catholicexchange.com/",
-          "notes": "Catholic formation, prayer, and personal growth."
-        },
-        {
-          "id": "ascension-press",
-          "title": "Ascension Blog",
-          "url": "https://ascensionpress.com/blogs/articles.atom",
-          "siteUrl": "https://ascensionpress.com/blogs/articles",
-          "notes": "Scripture, prayer, and Catholic personal growth."
-        },
-        {
-          "id": "integrated-catholic-life",
-          "title": "Aleteia",
-          "url": "https://aleteia.org/feed/",
-          "siteUrl": "https://aleteia.org/",
-          "notes": "Catholic spirituality, lifestyle, and personal growth."
-        },
-        {
-          "id": "aa-grapevine",
-          "title": "SAMHSA Blogs",
-          "url": "https://www.samhsa.gov/blog/rss",
-          "siteUrl": "https://www.samhsa.gov/blog",
-          "notes": "Recovery, behavioral health, and addiction support reflections."
-        },
-        {
-          "id": "coda",
-          "title": "Co-Dependents Anonymous",
-          "url": "https://coda.org/feed/",
-          "siteUrl": "https://coda.org/",
-          "notes": "Codependency recovery articles and fellowship updates."
         }
       ]
     }

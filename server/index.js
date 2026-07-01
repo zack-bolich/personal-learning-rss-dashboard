@@ -4,7 +4,16 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchAllFeeds } from "./fetchFeeds.js";
-import { getDashboardMeta, getLearningQueue, listArticles, updateArticleStatus } from "./db.js";
+import {
+  createCategory,
+  createFeed,
+  deleteCategory,
+  getDashboardMeta,
+  getLearningQueue,
+  listArticles,
+  updateArticleStatus,
+  updateCategory
+} from "./db.js";
 import { seedFeeds } from "./seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -84,6 +93,48 @@ app.post("/api/fetch", async (req, res, next) => {
   }
 });
 
+app.post("/api/categories", (req, res, next) => {
+  try {
+    res.status(201).json(createCategory(req.body || {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/categories/:id", (req, res, next) => {
+  try {
+    const category = updateCategory(req.params.id, req.body || {});
+    if (!category) {
+      res.status(404).json({ error: "Category not found." });
+      return;
+    }
+    res.json(category);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/categories/:id", (req, res, next) => {
+  try {
+    const category = deleteCategory(req.params.id);
+    if (!category) {
+      res.status(404).json({ error: "Category not found." });
+      return;
+    }
+    res.json({ deleted: true, category });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/feeds", (req, res, next) => {
+  try {
+    res.status(201).json(createFeed(req.body || {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.patch("/api/articles/:id", (req, res) => {
   const article = updateArticleStatus(Number(req.params.id), req.body || {});
   if (!article) {
@@ -95,7 +146,7 @@ app.patch("/api/articles/:id", (req, res) => {
 
 app.use((error, req, res, next) => {
   console.error(error);
-  res.status(500).json({ error: error?.message || "Unexpected server error" });
+  res.status(error?.statusCode || 500).json({ error: error?.message || "Unexpected server error" });
 });
 
 if (shouldServeStatic) {

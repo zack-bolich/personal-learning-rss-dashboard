@@ -12,6 +12,7 @@ mkdirSync(dataDir, { recursive: true });
 
 export const db = new DatabaseSync(dbPath);
 db.exec(readFileSync(path.join(__dirname, "schema.sql"), "utf8"));
+runMigrations();
 
 export function getDbPath() {
   return dbPath;
@@ -23,8 +24,8 @@ export function nowIso() {
 
 export function upsertCategory(category) {
   db.prepare(`
-    INSERT INTO categories (id, name, description, color, sort_order)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO categories (id, name, description, color, sort_order, user_created)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       description = excluded.description,
@@ -34,14 +35,15 @@ export function upsertCategory(category) {
     category.id,
     category.name,
     category.description || "",
-    category.color || "#64748b",
-    category.sortOrder || 0
+    normalizeColor(category.color),
+    category.sortOrder || 0,
+    category.userCreated ? 1 : 0
   );
 }
 
 export function upsertFeed(feed, categoryId) {
   db.prepare(`
-    INSERT INTO feeds (id, category_id, title, url, site_url, notes, project_interest, active)
+    INSERT INTO feeds (id, category_id, title, url, site_url, notes, priority, active)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       category_id = excluded.category_id,
@@ -49,7 +51,7 @@ export function upsertFeed(feed, categoryId) {
       url = excluded.url,
       site_url = excluded.site_url,
       notes = excluded.notes,
-      project_interest = excluded.project_interest,
+      priority = excluded.priority,
       active = excluded.active
   `).run(
     feed.id,
@@ -58,7 +60,7 @@ export function upsertFeed(feed, categoryId) {
     feed.url,
     feed.siteUrl || "",
     feed.notes || "",
-    feed.projectInterest ? 1 : 0,
+    feed.priority ? 1 : 0,
     feed.active === false ? 0 : 1
   );
 }
@@ -129,6 +131,7 @@ export function getDashboardMeta() {
       c.description,
       c.color,
       c.sort_order AS sortOrder,
+      c.user_created AS userCreated,
       COUNT(a.id) AS articleCount,
       SUM(CASE WHEN a.is_read = 0 THEN 1 ELSE 0 END) AS unreadCount
     FROM categories c
@@ -145,7 +148,7 @@ export function getDashboardMeta() {
       f.url,
       f.site_url AS siteUrl,
       f.notes,
-      f.project_interest AS projectInterest,
+      f.priority,
       f.active,
       f.last_fetched_at AS lastFetchedAt,
       f.last_error AS lastError,
@@ -175,6 +178,83 @@ export function getDashboardMeta() {
   `).all();
 
   return { categories, feeds, tags, totals };
+}
+
+export function createCategory(input) {
+  const name = validateName(input?.name, "Category name");
+  const description = cleanInput(input?.description || "", 300);
+  const color = normalizeColor(input?.color);
+  const id = uniqueId("categories", slugify(name));
+  const nextSortOrder = db.prepare("SELECT COALESCE(MAX(sort_order), 0) + 10 AS value FROM categories").get().value;
+
+  db.prepare(`
+    INSERT INTO categories (id, name, description, color, sort_order, user_created)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `).run(id, name, description, color, nextSortOrder);
+
+  return getCategory(id);
+}
+
+export function updateCategory(id, input) {
+  const category = getCategory(id);
+  if (!category) return null;
+
+  const name = input?.name === undefined ? category.name : validateName(input.name, "Category name");
+  const description =
+    input?.description === undefined ? category.description : cleanInput(input.description, 300);
+  const color = input?.color === undefined ? category.color : normalizeColor(input.color);
+
+  db.prepare(`
+    UPDATE categories
+    SET name = ?, description = ?, color = ?
+    WHERE id = ?
+  `).run(name, description, color, id);
+
+  return getCategory(id);
+}
+
+export function deleteCategory(id) {
+  const category = getCategory(id);
+  if (!category) return null;
+
+  db.prepare("DELETE FROM categories WHERE id = ?").run(id);
+  return category;
+}
+
+export function createFeed(input) {
+  const category = getCategory(input?.categoryId);
+  if (!category) {
+    throw Object.assign(new Error("Choose a valid category for this feed."), { statusCode: 400 });
+  }
+
+  const title = validateName(input?.title, "Feed title");
+  const url = validateUrl(input?.url, "Feed URL");
+  const siteUrl = input?.siteUrl ? validateUrl(input.siteUrl, "Site URL") : "";
+  const notes = cleanInput(input?.notes || "", 300);
+  const id = uniqueId("feeds", slugify(title));
+
+  db.prepare(`
+    INSERT INTO feeds (id, category_id, title, url, site_url, notes, priority, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+  `).run(id, category.id, title, url, siteUrl, notes, input?.priority ? 1 : 0);
+
+  return db.prepare(`
+    SELECT
+      f.id,
+      f.category_id AS categoryId,
+      f.title,
+      f.url,
+      f.site_url AS siteUrl,
+      f.notes,
+      f.priority,
+      f.active,
+      f.last_fetched_at AS lastFetchedAt,
+      f.last_error AS lastError,
+      0 AS articleCount,
+      0 AS unreadCount
+    FROM feeds f
+    WHERE f.id = ?
+  `).get(id);
 }
 
 function buildArticleWhere(filters) {
@@ -324,4 +404,88 @@ function normalizeArticle(row) {
     is_saved: Boolean(row.is_saved),
     is_important: Boolean(row.is_important)
   };
+}
+
+function getCategory(id) {
+  if (!id) return null;
+
+  const row = db.prepare(`
+    SELECT
+      c.id,
+      c.name,
+      c.description,
+      c.color,
+      c.sort_order AS sortOrder,
+      c.user_created AS userCreated,
+      COUNT(a.id) AS articleCount,
+      SUM(CASE WHEN a.is_read = 0 THEN 1 ELSE 0 END) AS unreadCount
+    FROM categories c
+    LEFT JOIN articles a ON a.category_id = c.id
+    WHERE c.id = ?
+    GROUP BY c.id
+  `).get(id);
+
+  return row || null;
+}
+
+function runMigrations() {
+  const categoryColumns = db.prepare("PRAGMA table_info(categories)").all().map((column) => column.name);
+  if (!categoryColumns.includes("user_created")) {
+    db.exec("ALTER TABLE categories ADD COLUMN user_created INTEGER NOT NULL DEFAULT 0");
+  }
+
+  const feedColumns = db.prepare("PRAGMA table_info(feeds)").all().map((column) => column.name);
+  if (!feedColumns.includes("priority")) {
+    db.exec("ALTER TABLE feeds ADD COLUMN priority INTEGER NOT NULL DEFAULT 0");
+  }
+}
+
+function slugify(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "category";
+}
+
+function uniqueId(table, baseId) {
+  let id = baseId;
+  let suffix = 2;
+  const statement = db.prepare(`SELECT 1 FROM ${table} WHERE id = ?`);
+
+  while (statement.get(id)) {
+    id = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+
+  return id;
+}
+
+function validateName(value, label) {
+  const cleaned = cleanInput(value || "", 80);
+  if (!cleaned) {
+    throw Object.assign(new Error(`${label} is required.`), { statusCode: 400 });
+  }
+  return cleaned;
+}
+
+function validateUrl(value, label) {
+  const cleaned = cleanInput(value || "", 500);
+  try {
+    const parsed = new URL(cleaned);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new Error("Unsupported protocol");
+    }
+    return parsed.toString();
+  } catch {
+    throw Object.assign(new Error(`${label} must be a valid http or https URL.`), { statusCode: 400 });
+  }
+}
+
+function cleanInput(value, maxLength) {
+  return String(value).replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function normalizeColor(value = "#64748b") {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#64748b";
 }
