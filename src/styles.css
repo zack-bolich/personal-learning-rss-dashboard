@@ -316,6 +316,16 @@ textarea {
   margin: 0;
 }
 
+.discovery-empty {
+  border: 1px dashed #d5cec1;
+  border-radius: 6px;
+  color: #5f6876;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 10px;
+}
+
 .mini-tags {
   display: flex;
   flex-wrap: wrap;

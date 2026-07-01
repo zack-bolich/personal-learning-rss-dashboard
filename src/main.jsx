@@ -379,6 +379,9 @@ function App() {
                 ))}
               </div>
               <div className="suggestion-list">
+                {!discovering && discoveryQuery.trim() && suggestions.length === 0 && (
+                  <p className="discovery-empty">No feeds found. Try a broader topic or paste a website URL.</p>
+                )}
                 {suggestions.slice(0, 6).map((feed) => (
                   <div className="suggestion-item" key={feed.id}>
                     <div>

@@ -326,7 +326,7 @@ const FEED_CATALOG = [
 ];
 
 export function searchFeedCatalog(query = "", limit = 12) {
-  const installedUrls = new Set(listFeeds().map((feed) => feed.url.toLowerCase()));
+  const installedUrls = getInstalledUrls();
   const terms = normalizeTerms(query);
   const resultLimit = normalizeLimit(limit);
 
@@ -351,24 +351,26 @@ export function searchFeedCatalog(query = "", limit = 12) {
 export async function discoverFeeds(query = "", limit = 12) {
   const url = parseDiscoverUrl(query);
   const resultLimit = normalizeLimit(limit);
-  const catalogResults = searchFeedCatalog(url ? catalogQueryFromUrl(url) : query, limit);
+  const searchQuery = url ? catalogQueryFromUrl(url) : query;
+  const catalogResults = searchFeedCatalog(searchQuery, resultLimit);
+  const directoryResults = await searchFeedDirectory(searchQuery, resultLimit);
 
   if (!url) {
-    return catalogResults;
+    return mergeSuggestions(catalogResults, directoryResults).slice(0, resultLimit);
   }
 
   try {
     const discovered = await discoverFromWebsite(url);
-    const installedUrls = new Set(listFeeds().map((feed) => feed.url.toLowerCase()));
+    const installedUrls = getInstalledUrls();
     const normalizedDiscovered = discovered.map((feed) => ({
       ...feed,
       added: installedUrls.has(feed.url.toLowerCase()),
       tags: ["discovered", "rss", "website"]
     }));
 
-    return mergeSuggestions(normalizedDiscovered, catalogResults).slice(0, resultLimit);
+    return mergeSuggestions(normalizedDiscovered, catalogResults, directoryResults).slice(0, resultLimit);
   } catch {
-    return catalogResults;
+    return mergeSuggestions(catalogResults, directoryResults).slice(0, resultLimit);
   }
 }
 
@@ -432,7 +434,10 @@ function parseDiscoverUrl(query) {
   const value = String(query || "").trim();
   if (!value || /\s/.test(value)) return null;
 
-  const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  const hasProtocol = /^https?:\/\//i.test(value);
+  if (!hasProtocol && !value.includes(".")) return null;
+
+  const candidate = hasProtocol ? value : `https://${value}`;
   try {
     const url = new URL(candidate);
     if (!["http:", "https:"].includes(url.protocol) || isBlockedHost(url.hostname)) {
@@ -442,6 +447,81 @@ function parseDiscoverUrl(query) {
   } catch {
     return null;
   }
+}
+
+async function searchFeedDirectory(query, limit) {
+  const terms = normalizeTerms(query)
+    .filter((term) => term.length > 1 && !["http", "https", "www"].includes(term))
+    .slice(0, 6);
+
+  if (terms.length === 0) return [];
+
+  try {
+    const url = new URL("https://cloud.feedly.com/v3/search/feeds");
+    url.searchParams.set("query", terms.join(" "));
+    url.searchParams.set("count", String(Math.min(normalizeLimit(limit), 20)));
+
+    const data = await fetchJson(url);
+    const installedUrls = getInstalledUrls();
+
+    return (data.results || [])
+      .map((result) => mapDirectoryResult(result, installedUrls, terms))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function mapDirectoryResult(result, installedUrls, terms) {
+  const feedUrl = directoryFeedUrl(result);
+  if (!feedUrl) return null;
+
+  try {
+    const parsedFeedUrl = new URL(feedUrl);
+    if (!["http:", "https:"].includes(parsedFeedUrl.protocol) || isBlockedHost(parsedFeedUrl.hostname)) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  if (!directoryResultMatches(result, feedUrl, terms)) {
+    return null;
+  }
+
+  const topicTags = (result.topics || [])
+    .map((topic) => slugify(topic))
+    .filter(Boolean);
+  const tags = [...new Set([...topicTags, ...terms.slice(0, 3), "directory"])];
+  const subscriberText = Number.isFinite(Number(result.subscribers))
+    ? ` ${Number(result.subscribers).toLocaleString()} Feedly subscribers.`
+    : "";
+
+  return {
+    id: `directory-${slugify(feedUrl)}`,
+    title: result.title || new URL(feedUrl).hostname,
+    url: feedUrl,
+    siteUrl: result.website || new URL(feedUrl).origin,
+    notes: `${result.description || "Found in Feedly's public feed directory."}${subscriberText}`.trim(),
+    tags,
+    added: installedUrls.has(feedUrl.toLowerCase())
+  };
+}
+
+function directoryFeedUrl(result) {
+  const id = result.feedId || result.id || "";
+  const fromId = id.startsWith("feed/") ? id.slice(5) : "";
+  return result.feedUrl || result.url || fromId;
+}
+
+function directoryResultMatches(result, feedUrl, terms) {
+  const haystack = `${result.title || ""} ${result.description || ""} ${(result.topics || []).join(" ")} ${feedUrl} ${result.website || ""}`.toLowerCase();
+
+  return terms.some((term) => new RegExp(`(^|[^a-z0-9])${escapeRegex(term)}([^a-z0-9]|$)`, "i").test(haystack));
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function catalogQueryFromUrl(url) {
@@ -534,7 +614,7 @@ async function fetchText(url, maxLength = 400000) {
   try {
     const response = await fetch(url, {
       headers: {
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, text/html, */*",
+        Accept: "application/json, application/rss+xml, application/atom+xml, application/xml, text/xml, text/html, */*",
         "User-Agent": "LearningRSSDashboard/0.1"
       },
       signal: controller.signal
@@ -548,11 +628,15 @@ async function fetchText(url, maxLength = 400000) {
   }
 }
 
-function mergeSuggestions(primary, fallback) {
+async function fetchJson(url) {
+  return JSON.parse(await fetchText(url, 250000));
+}
+
+function mergeSuggestions(...groups) {
   const seen = new Set();
   const merged = [];
 
-  for (const feed of [...primary, ...fallback]) {
+  for (const feed of groups.flat()) {
     const key = feed.url.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -560,6 +644,10 @@ function mergeSuggestions(primary, fallback) {
   }
 
   return merged;
+}
+
+function getInstalledUrls() {
+  return new Set(listFeeds().map((feed) => feed.url.toLowerCase()));
 }
 
 function isBlockedHost(hostname) {

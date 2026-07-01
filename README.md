@@ -6,7 +6,7 @@ A local-first web app that collects RSS feeds into user-defined learning categor
 
 - React dashboard with category, source, status, tag, and keyword filters.
 - UI forms for adding custom interest categories and RSS feeds.
-- Feed discovery by interest/tag, plus website URL discovery for RSS/Atom links.
+- Feed discovery by interest/tag, Feedly directory search, plus website URL discovery for RSS/Atom links.
 - Express API with scheduled RSS fetching.
 - SQLite database stored locally at `data/learning-rss.sqlite`.
 - Public-safe starter feeds in `server/feeds.seed.json`.
@@ -81,7 +81,7 @@ npm.cmd run serve:background
 
 Use the sidebar forms to add a new interest category or attach an RSS feed to a category. These changes are stored in your local SQLite database.
 
-The Discover feeds box accepts either an interest/tag, such as `react`, `seo`, or `investing`, or a website URL/domain. For website URLs, the app looks for RSS/Atom `<link rel="alternate">` tags and common feed paths such as `/feed`, `/rss.xml`, and `/atom.xml`.
+The Discover feeds box accepts either an interest/tag, such as `react`, `seo`, `investing`, or `knitting`, or a website URL/domain. Interest searches first check the local starter catalog, then use Feedly's public feed directory to find broader RSS sources. For website URLs, the app looks for RSS/Atom `<link rel="alternate">` tags and common feed paths such as `/feed`, `/rss.xml`, and `/atom.xml`.
 
 The starter feed list is also editable:
 
