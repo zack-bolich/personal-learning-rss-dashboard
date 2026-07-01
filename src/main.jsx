@@ -48,6 +48,10 @@ function App() {
   const [loading, setLoading] = React.useState(true);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [discovering, setDiscovering] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState([]);
+  const [catalogTags, setCatalogTags] = React.useState([]);
+  const [discoveryQuery, setDiscoveryQuery] = React.useState("");
   const [categoryForm, setCategoryForm] = React.useState({
     name: "",
     description: "",
@@ -91,6 +95,10 @@ function App() {
   React.useEffect(() => {
     load();
   }, [load]);
+
+  React.useEffect(() => {
+    discoverFeeds("");
+  }, []);
 
   React.useEffect(() => {
     if (!feedForm.categoryId && meta?.categories?.length) {
@@ -152,6 +160,41 @@ function App() {
       });
       setFeedForm((value) => ({ ...value, title: "", url: "" }));
       await load();
+    } catch (feedError) {
+      setError(feedError.message);
+    }
+  }
+
+  async function discoverFeeds(query = discoveryQuery) {
+    setDiscovering(true);
+    setError("");
+    try {
+      const data = await api(`/api/feed-suggestions?${new URLSearchParams({ query, limit: "12" })}`);
+      setSuggestions(data.suggestions || []);
+      setCatalogTags(data.tags || []);
+    } catch (discoverError) {
+      setError(discoverError.message);
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  async function addSuggestedFeed(feed) {
+    setError("");
+    try {
+      await api("/api/feeds", {
+        method: "POST",
+        body: JSON.stringify({
+          title: feed.title,
+          url: feed.url,
+          siteUrl: feed.siteUrl,
+          notes: feed.notes,
+          priority: false,
+          categoryId: feedForm.categoryId || filters.category || meta?.categories?.[0]?.id
+        })
+      });
+      await load();
+      await discoverFeeds(discoveryQuery);
     } catch (feedError) {
       setError(feedError.message);
     }
@@ -299,6 +342,67 @@ function App() {
                 Add feed
               </button>
             </form>
+            <div className="discovery-panel">
+              <h3>Discover feeds</h3>
+              <form
+                className="discovery-search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  discoverFeeds();
+                }}
+              >
+                <div className="search-box compact-search">
+                  <Search size={16} />
+                  <input
+                    value={discoveryQuery}
+                    onChange={(event) => setDiscoveryQuery(event.target.value)}
+                    placeholder="Interest, tag, or website URL"
+                  />
+                </div>
+                <button className="secondary" type="submit" disabled={discovering}>
+                  {discovering ? "Searching" : "Search"}
+                </button>
+              </form>
+              <div className="tag-cloud compact-tags">
+                {catalogTags.slice(0, 14).map((tag) => (
+                  <button
+                    key={tag.tag}
+                    type="button"
+                    className="tag-button"
+                    onClick={() => {
+                      setDiscoveryQuery(tag.tag);
+                      discoverFeeds(tag.tag);
+                    }}
+                  >
+                    {tag.tag}
+                  </button>
+                ))}
+              </div>
+              <div className="suggestion-list">
+                {suggestions.slice(0, 6).map((feed) => (
+                  <div className="suggestion-item" key={feed.id}>
+                    <div>
+                      <strong>{feed.title}</strong>
+                      <p>{feed.notes}</p>
+                      <div className="mini-tags">
+                        {feed.tags.slice(0, 4).map((tag) => (
+                          <span key={tag}>{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      className="secondary"
+                      type="button"
+                      onClick={() => addSuggestedFeed(feed)}
+                      disabled={feed.added}
+                      title={feed.added ? "This feed is already in your source list" : "Add this feed"}
+                    >
+                      {feed.added ? "Added" : "Add"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
           <section className="filter-section">

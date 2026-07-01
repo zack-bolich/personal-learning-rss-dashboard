@@ -125,6 +125,11 @@ button {
   padding: 0 11px;
 }
 
+.secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .spin {
   animation: spin 900ms linear infinite;
 }
@@ -245,6 +250,85 @@ textarea {
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr auto;
+}
+
+.discovery-panel {
+  border-top: 1px solid #e5e0d7;
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.discovery-panel h3 {
+  font-size: 13px;
+  margin: 0;
+}
+
+.discovery-search {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-search {
+  min-height: 38px;
+}
+
+.compact-search input {
+  min-height: 34px;
+}
+
+.compact-tags {
+  gap: 6px;
+}
+
+.compact-tags .tag-button {
+  font-size: 12px;
+  min-height: 27px;
+  padding-inline: 8px;
+}
+
+.suggestion-list {
+  display: grid;
+  gap: 8px;
+}
+
+.suggestion-item {
+  align-items: start;
+  border: 1px solid #e5e0d7;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px;
+}
+
+.suggestion-item strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.suggestion-item p {
+  color: #5f6876;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.mini-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.mini-tags span {
+  background: #f0ede7;
+  border-radius: 999px;
+  color: #475467;
+  font-size: 11px;
+  padding: 2px 7px;
 }
 
 .tag-cloud {

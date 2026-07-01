@@ -16,7 +16,7 @@
     "serve:background": "node scripts/launch-server.js",
     "seed": "node server/seed.js",
     "fetch": "node server/fetchFeeds.js",
-    "check": "node --check server/index.js && node --check server/db.js && node --check server/fetchFeeds.js && node --check server/seed.js && node --check server/tagger.js && node --check scripts/dev.js && node --check scripts/launch-server.js"
+    "check": "node --check server/index.js && node --check server/db.js && node --check server/feedCatalog.js && node --check server/fetchFeeds.js && node --check server/seed.js && node --check server/tagger.js && node --check scripts/dev.js && node --check scripts/launch-server.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^6.0.3",

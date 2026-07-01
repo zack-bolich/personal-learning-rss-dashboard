@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchAllFeeds } from "./fetchFeeds.js";
+import { discoverFeeds, listCatalogTags } from "./feedCatalog.js";
 import {
   createCategory,
   createFeed,
@@ -83,6 +84,17 @@ app.get("/api/articles", (req, res) => {
 
 app.get("/api/learning-queue", (req, res) => {
   res.json(getLearningQueue(Number(req.query.limit) || 8));
+});
+
+app.get("/api/feed-suggestions", async (req, res, next) => {
+  try {
+    res.json({
+      suggestions: await discoverFeeds(req.query.query || "", req.query.limit || 12),
+      tags: listCatalogTags()
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post("/api/fetch", async (req, res, next) => {
