@@ -1,0 +1,31 @@
+{
+  "name": "personal-learning-rss-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local RSS learning dashboard organized around current projects and interests.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "server": "node server/index.js",
+    "client": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "serve:background": "node scripts/launch-server.js",
+    "seed": "node server/seed.js",
+    "fetch": "node server/fetchFeeds.js",
+    "check": "node --check server/index.js && node --check server/db.js && node --check server/fetchFeeds.js && node --check server/seed.js && node --check server/tagger.js && node --check scripts/dev.js && node --check scripts/launch-server.js"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.3",
+    "express": "^4.19.2",
+    "lucide-react": "^0.468.0",
+    "node-cron": "^4.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rss-parser": "^3.13.0",
+    "vite": "^8.1.2"
+  }
+}
