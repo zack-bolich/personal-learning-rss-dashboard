@@ -5,11 +5,12 @@ A local-first web app that collects RSS feeds into user-defined learning categor
 ## What It Includes
 
 - React dashboard with category, source, status, tag, and keyword filters.
+- Blank-first dashboard where interests are created by discovery or manual entry.
 - UI forms for adding custom interest categories and RSS feeds.
 - Feed discovery by interest/tag, Feedly directory search, plus website URL discovery for RSS/Atom links.
 - Express API with scheduled RSS fetching.
 - SQLite database stored locally at `data/learning-rss.sqlite`.
-- Public-safe starter feeds in `server/feeds.seed.json`.
+- Optional public-safe starter feeds in `server/feeds.seed.json`.
 - Article actions for read, saved, and important.
 - Automatic tags from keyword matching.
 - A "Today's Learning Queue" that prefers unread, high-signal articles from different categories.
@@ -48,7 +49,7 @@ The dev script starts:
 - API server: `http://127.0.0.1:3001`
 - React app: `http://127.0.0.1:5173`
 
-The API seeds the feed list automatically on startup and fetches feeds every 30 minutes. Use the dashboard's "Fetch now" button, or set `FETCH_ON_START=true`, if you want an immediate refresh when the server starts.
+The app starts with an empty local database unless you seed starter feeds manually. Use the dashboard's "Fetch now" button, or set `FETCH_ON_START=true`, if you want an immediate refresh when the server starts.
 
 ## Useful Commands
 
@@ -57,6 +58,12 @@ npm.cmd run seed
 npm.cmd run fetch
 npm.cmd run check
 npm.cmd run build
+```
+
+To opt into the starter categories every time the API starts:
+
+```powershell
+$env:SEED_ON_START="true"; npm.cmd run start
 ```
 
 After `npm.cmd run build`, one server can run both the API and built dashboard:
@@ -79,9 +86,9 @@ npm.cmd run serve:background
 
 ## Add Categories And Feeds
 
-Use the sidebar forms to add a new interest category or attach an RSS feed to a category. These changes are stored in your local SQLite database.
+Use discovery to create interest categories from searches, or use the sidebar forms to manually add a category and attach an RSS feed. These changes are stored in your local SQLite database.
 
-The Discover feeds box accepts either an interest/tag, such as `react`, `seo`, `investing`, or `knitting`, or a website URL/domain. Interest searches first check the local starter catalog, then use Feedly's public feed directory to find broader RSS sources. For website URLs, the app looks for RSS/Atom `<link rel="alternate">` tags and common feed paths such as `/feed`, `/rss.xml`, and `/atom.xml`.
+The Discover feeds box accepts either an interest/tag, such as `react`, `seo`, `investing`, or `knitting`, or a website URL/domain. Search results create or reuse a category named from the search term, such as `boxing` -> `Boxing`. Interest searches first check the local starter catalog, then use Feedly's public feed directory to find broader RSS sources. For website URLs, the app looks for RSS/Atom `<link rel="alternate">` tags and common feed paths such as `/feed`, `/rss.xml`, and `/atom.xml`.
 
 The starter feed list is also editable:
 
@@ -134,6 +141,7 @@ Main tables:
 - `PATCH /api/categories/:id`: update a category.
 - `DELETE /api/categories/:id`: delete a category and its feeds/articles.
 - `POST /api/feeds`: add a feed with `categoryId`, `title`, `url`, optional `siteUrl`, and optional `priority`.
+- `PATCH /api/feeds/:id`: move an existing feed to a different category.
 - `POST /api/fetch`: fetch all active feeds now.
 - `PATCH /api/articles/:id`: update `isRead`, `isSaved`, or `isImportant`.
 

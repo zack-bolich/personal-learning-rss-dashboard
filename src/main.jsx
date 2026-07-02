@@ -15,6 +15,7 @@ import {
 import "./styles.css";
 
 const API = "";
+const DISCOVERY_COLORS = ["#2563eb", "#0f766e", "#7c3aed", "#be123c", "#0369a1", "#15803d", "#b45309"];
 
 function formatDate(value) {
   if (!value) return "No date";
@@ -41,6 +42,70 @@ async function api(path, options) {
   return response.json();
 }
 
+function cleanDiscoveryQuery(query) {
+  return String(query || "").replace(/\s+/g, " ").trim();
+}
+
+function categoryNameFromDiscoveryQuery(query) {
+  const value = cleanDiscoveryQuery(query);
+  if (!value) return "";
+
+  const urlValue = /^https?:\/\//i.test(value) ? value : value.includes(".") && !value.includes(" ") ? `https://${value}` : "";
+  if (urlValue) {
+    try {
+      const hostname = new URL(urlValue).hostname.replace(/^www\./, "");
+      const hostParts = hostname
+        .split(/[.-]+/)
+        .filter((part) => part && !["com", "org", "net", "dev", "io", "co"].includes(part));
+      return titleCaseLabel(hostParts.join(" ") || hostname);
+    } catch {}
+  }
+
+  return titleCaseLabel(value.replace(/[_./-]+/g, " "));
+}
+
+function categoryNameFromFeed(feed) {
+  const tag = (feed?.tags || []).find((value) => value && !["directory", "rss", "website", "discovered"].includes(value));
+  return titleCaseLabel(tag || feed?.title || "");
+}
+
+function titleCaseLabel(value) {
+  const specialCases = new Map([
+    ["ai", "AI"],
+    ["api", "API"],
+    ["css", "CSS"],
+    ["html", "HTML"],
+    ["llm", "LLM"],
+    ["rss", "RSS"],
+    ["seo", "SEO"],
+    ["ui", "UI"],
+    ["ux", "UX"]
+  ]);
+
+  return String(value)
+    .replace(/[^a-zA-Z0-9+# ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 6)
+    .map((word) => specialCases.get(word.toLowerCase()) || `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(" ")
+    .slice(0, 60);
+}
+
+function normalizeCategoryLabel(value) {
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function colorFromText(value) {
+  let hash = 0;
+  for (const character of String(value)) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }
+  return DISCOVERY_COLORS[hash % DISCOVERY_COLORS.length];
+}
+
 function App() {
   const [meta, setMeta] = React.useState(null);
   const [articles, setArticles] = React.useState([]);
@@ -52,6 +117,7 @@ function App() {
   const [suggestions, setSuggestions] = React.useState([]);
   const [catalogTags, setCatalogTags] = React.useState([]);
   const [discoveryQuery, setDiscoveryQuery] = React.useState("");
+  const [feedNotice, setFeedNotice] = React.useState("");
   const [categoryForm, setCategoryForm] = React.useState({
     name: "",
     description: "",
@@ -151,14 +217,15 @@ function App() {
     event.preventDefault();
     setError("");
     try {
-      await api("/api/feeds", {
+      const createdFeed = await api("/api/feeds", {
         method: "POST",
         body: JSON.stringify({
           ...feedForm,
-          categoryId: feedForm.categoryId || filters.category || meta?.categories?.[0]?.id
+          categoryId: selectedFeedCategoryId
         })
       });
       setFeedForm((value) => ({ ...value, title: "", url: "" }));
+      setFeedNotice(`Added ${createdFeed.title} to ${createdFeed.categoryName || "the selected category"}. Use Fetch now to pull in articles.`);
       await load();
     } catch (feedError) {
       setError(feedError.message);
@@ -169,8 +236,9 @@ function App() {
     setDiscovering(true);
     setError("");
     try {
+      const searchTerm = cleanDiscoveryQuery(query);
       const data = await api(`/api/feed-suggestions?${new URLSearchParams({ query, limit: "12" })}`);
-      setSuggestions(data.suggestions || []);
+      setSuggestions(searchTerm ? data.suggestions || [] : []);
       setCatalogTags(data.tags || []);
     } catch (discoverError) {
       setError(discoverError.message);
@@ -182,7 +250,8 @@ function App() {
   async function addSuggestedFeed(feed) {
     setError("");
     try {
-      await api("/api/feeds", {
+      const targetCategory = await getDiscoveryCategory(feed);
+      const createdFeed = await api("/api/feeds", {
         method: "POST",
         body: JSON.stringify({
           title: feed.title,
@@ -190,15 +259,66 @@ function App() {
           siteUrl: feed.siteUrl,
           notes: feed.notes,
           priority: false,
-          categoryId: feedForm.categoryId || filters.category || meta?.categories?.[0]?.id
+          categoryId: targetCategory.id
         })
       });
+      setFeedNotice(`Added ${createdFeed.title} to ${createdFeed.categoryName || targetCategory.name}. Use Fetch now to pull in articles.`);
+      setFeedForm((value) => ({ ...value, categoryId: createdFeed.categoryId || targetCategory.id }));
+      setFilters((value) => ({ ...value, category: createdFeed.categoryId || targetCategory.id, source: "" }));
       await load();
       await discoverFeeds(discoveryQuery);
     } catch (feedError) {
       setError(feedError.message);
     }
   }
+
+  async function moveSuggestedFeed(feed) {
+    setError("");
+    try {
+      const targetCategory = await getDiscoveryCategory(feed);
+      const movedFeed = await api(`/api/feeds/${feed.addedFeedId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ categoryId: targetCategory.id })
+      });
+      setFeedNotice(`Moved ${movedFeed.title} to ${movedFeed.categoryName || targetCategory.name}.`);
+      setFeedForm((value) => ({ ...value, categoryId: movedFeed.categoryId || targetCategory.id }));
+      setFilters((value) => ({ ...value, category: movedFeed.categoryId || targetCategory.id, source: "" }));
+      await load();
+      await discoverFeeds(discoveryQuery);
+    } catch (feedError) {
+      setError(feedError.message);
+    }
+  }
+
+  async function getDiscoveryCategory(feed) {
+    const categoryName = discoveryCategoryName || categoryNameFromFeed(feed);
+    if (!categoryName) {
+      return selectedFeedCategory || meta?.categories?.[0];
+    }
+
+    const existingCategory = (meta?.categories || []).find(
+      (category) => normalizeCategoryLabel(category.name) === normalizeCategoryLabel(categoryName)
+    );
+    if (existingCategory) return existingCategory;
+
+    return api("/api/categories", {
+      method: "POST",
+      body: JSON.stringify({
+        name: categoryName,
+        description: `Feeds discovered from the "${discoverySearchLabel || categoryName}" search.`,
+        color: colorFromText(categoryName)
+      })
+    });
+  }
+
+  const categoryById = React.useMemo(() => {
+    return new Map((meta?.categories || []).map((category) => [category.id, category]));
+  }, [meta]);
+
+  const selectedFeedCategoryId = feedForm.categoryId || filters.category || meta?.categories?.[0]?.id || "";
+  const selectedFeedCategory = categoryById.get(selectedFeedCategoryId);
+  const discoverySearchLabel = cleanDiscoveryQuery(discoveryQuery);
+  const discoveryCategoryName = categoryNameFromDiscoveryQuery(discoveryQuery);
 
   const categoryFeeds = React.useMemo(() => {
     if (!meta) return [];
@@ -255,6 +375,7 @@ function App() {
                 <strong>{category.unreadCount || 0}</strong>
               </button>
             ))}
+            {meta?.categories.length === 0 && <p className="source-empty">No interests yet.</p>}
             <form className="stacked-form" onSubmit={submitCategory}>
               <label>
                 Add category
@@ -304,6 +425,18 @@ function App() {
                 </option>
               ))}
             </select>
+            <div className="source-list" aria-label="Current RSS sources">
+              {categoryFeeds.slice(0, 8).map((feed) => (
+                <div className="source-item" key={feed.id}>
+                  <span>{feed.title}</span>
+                  <small>
+                    {categoryById.get(feed.categoryId)?.name || "Source"} · {feed.articleCount || 0} articles
+                  </small>
+                </div>
+              ))}
+              {categoryFeeds.length === 0 && <p className="source-empty">No sources in this view yet.</p>}
+              {categoryFeeds.length > 8 && <p className="source-empty">Showing 8 of {categoryFeeds.length} sources.</p>}
+            </div>
             <form className="stacked-form" onSubmit={submitFeed}>
               <label>
                 Add feed
@@ -327,7 +460,7 @@ function App() {
               <label>
                 Category
                 <select
-                  value={feedForm.categoryId || filters.category || meta?.categories?.[0]?.id || ""}
+                  value={selectedFeedCategoryId}
                   onChange={(event) => setFeedForm((value) => ({ ...value, categoryId: event.target.value }))}
                 >
                   {meta?.categories.map((category) => (
@@ -344,10 +477,20 @@ function App() {
             </form>
             <div className="discovery-panel">
               <h3>Discover feeds</h3>
+              <p className="discovery-target">
+                {discoveryCategoryName ? (
+                  <>
+                    Add results to <strong>{discoveryCategoryName}</strong>. This category will be created if needed.
+                  </>
+                ) : (
+                  "Search results create or reuse a category named after the search."
+                )}
+              </p>
               <form
                 className="discovery-search"
                 onSubmit={(event) => {
                   event.preventDefault();
+                  setFeedNotice("");
                   discoverFeeds();
                 }}
               >
@@ -355,7 +498,10 @@ function App() {
                   <Search size={16} />
                   <input
                     value={discoveryQuery}
-                    onChange={(event) => setDiscoveryQuery(event.target.value)}
+                    onChange={(event) => {
+                      setDiscoveryQuery(event.target.value);
+                      setFeedNotice("");
+                    }}
                     placeholder="Interest, tag, or website URL"
                   />
                 </div>
@@ -371,6 +517,7 @@ function App() {
                     className="tag-button"
                     onClick={() => {
                       setDiscoveryQuery(tag.tag);
+                      setFeedNotice("");
                       discoverFeeds(tag.tag);
                     }}
                   >
@@ -378,32 +525,53 @@ function App() {
                   </button>
                 ))}
               </div>
+              {feedNotice && <p className="feed-notice">{feedNotice}</p>}
               <div className="suggestion-list">
                 {!discovering && discoveryQuery.trim() && suggestions.length === 0 && (
                   <p className="discovery-empty">No feeds found. Try a broader topic or paste a website URL.</p>
                 )}
-                {suggestions.slice(0, 6).map((feed) => (
-                  <div className="suggestion-item" key={feed.id}>
-                    <div>
-                      <strong>{feed.title}</strong>
-                      <p>{feed.notes}</p>
-                      <div className="mini-tags">
-                        {feed.tags.slice(0, 4).map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))}
+                {suggestions.slice(0, 6).map((feed) => {
+                  const targetCategoryName = discoveryCategoryName || categoryNameFromFeed(feed);
+                  const canMoveFeed =
+                    feed.added &&
+                    feed.addedFeedId &&
+                    targetCategoryName &&
+                    normalizeCategoryLabel(feed.addedCategoryName) !== normalizeCategoryLabel(targetCategoryName);
+
+                  return (
+                    <div className="suggestion-item" key={feed.id}>
+                      <div>
+                        <strong>{feed.title}</strong>
+                        <p>{feed.notes}</p>
+                        {feed.added && (
+                          <p className="added-detail">
+                            Added to {feed.addedCategoryName || "your sources"}
+                          </p>
+                        )}
+                        <div className="mini-tags">
+                          {feed.tags.slice(0, 4).map((tag) => (
+                            <span key={tag}>{tag}</span>
+                          ))}
+                        </div>
                       </div>
+                      <button
+                        className="secondary"
+                        type="button"
+                        onClick={() => (canMoveFeed ? moveSuggestedFeed(feed) : addSuggestedFeed(feed))}
+                        disabled={feed.added && !canMoveFeed}
+                        title={
+                          canMoveFeed
+                            ? `Move this feed to ${targetCategoryName}`
+                            : feed.added
+                              ? "This feed is already in your source list"
+                              : "Add this feed"
+                        }
+                      >
+                        {canMoveFeed ? "Move" : feed.added ? "Added" : "Add"}
+                      </button>
                     </div>
-                    <button
-                      className="secondary"
-                      type="button"
-                      onClick={() => addSuggestedFeed(feed)}
-                      disabled={feed.added}
-                      title={feed.added ? "This feed is already in your source list" : "Add this feed"}
-                    >
-                      {feed.added ? "Added" : "Add"}
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>

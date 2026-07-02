@@ -242,6 +242,8 @@ export function createFeed(input) {
     SELECT
       f.id,
       f.category_id AS categoryId,
+      c.name AS categoryName,
+      c.color AS categoryColor,
       f.title,
       f.url,
       f.site_url AS siteUrl,
@@ -253,7 +255,44 @@ export function createFeed(input) {
       0 AS articleCount,
       0 AS unreadCount
     FROM feeds f
+    JOIN categories c ON c.id = f.category_id
     WHERE f.id = ?
+  `).get(id);
+}
+
+export function updateFeedCategory(id, categoryId) {
+  const category = getCategory(categoryId);
+  if (!category) {
+    throw Object.assign(new Error("Choose a valid category for this feed."), { statusCode: 400 });
+  }
+
+  const existingFeed = db.prepare("SELECT id FROM feeds WHERE id = ?").get(id);
+  if (!existingFeed) return null;
+
+  db.prepare("UPDATE feeds SET category_id = ? WHERE id = ?").run(category.id, id);
+  db.prepare("UPDATE articles SET category_id = ? WHERE feed_id = ?").run(category.id, id);
+
+  return db.prepare(`
+    SELECT
+      f.id,
+      f.category_id AS categoryId,
+      c.name AS categoryName,
+      c.color AS categoryColor,
+      f.title,
+      f.url,
+      f.site_url AS siteUrl,
+      f.notes,
+      f.priority,
+      f.active,
+      f.last_fetched_at AS lastFetchedAt,
+      f.last_error AS lastError,
+      COUNT(a.id) AS articleCount,
+      SUM(CASE WHEN a.is_read = 0 THEN 1 ELSE 0 END) AS unreadCount
+    FROM feeds f
+    JOIN categories c ON c.id = f.category_id
+    LEFT JOIN articles a ON a.feed_id = f.id
+    WHERE f.id = ?
+    GROUP BY f.id
   `).get(id);
 }
 

@@ -326,7 +326,7 @@ const FEED_CATALOG = [
 ];
 
 export function searchFeedCatalog(query = "", limit = 12) {
-  const installedUrls = getInstalledUrls();
+  const installedFeeds = getInstalledFeedMap();
   const terms = normalizeTerms(query);
   const resultLimit = normalizeLimit(limit);
 
@@ -339,9 +339,9 @@ export function searchFeedCatalog(query = "", limit = 12) {
     return {
       ...feed,
       score,
-      added: installedUrls.has(feed.url.toLowerCase())
+      ...installedState(feed.url, installedFeeds)
     };
-    })
+  })
     .filter((feed) => feed.score > 0)
     .sort((a, b) => Number(a.added) - Number(b.added) || b.score - a.score || a.title.localeCompare(b.title))
     .slice(0, resultLimit)
@@ -361,10 +361,10 @@ export async function discoverFeeds(query = "", limit = 12) {
 
   try {
     const discovered = await discoverFromWebsite(url);
-    const installedUrls = getInstalledUrls();
+    const installedFeeds = getInstalledFeedMap();
     const normalizedDiscovered = discovered.map((feed) => ({
       ...feed,
-      added: installedUrls.has(feed.url.toLowerCase()),
+      ...installedState(feed.url, installedFeeds),
       tags: ["discovered", "rss", "website"]
     }));
 
@@ -462,17 +462,17 @@ async function searchFeedDirectory(query, limit) {
     url.searchParams.set("count", String(Math.min(normalizeLimit(limit), 20)));
 
     const data = await fetchJson(url);
-    const installedUrls = getInstalledUrls();
+    const installedFeeds = getInstalledFeedMap();
 
     return (data.results || [])
-      .map((result) => mapDirectoryResult(result, installedUrls, terms))
+      .map((result) => mapDirectoryResult(result, installedFeeds, terms))
       .filter(Boolean);
   } catch {
     return [];
   }
 }
 
-function mapDirectoryResult(result, installedUrls, terms) {
+function mapDirectoryResult(result, installedFeeds, terms) {
   const feedUrl = directoryFeedUrl(result);
   if (!feedUrl) return null;
 
@@ -504,7 +504,7 @@ function mapDirectoryResult(result, installedUrls, terms) {
     siteUrl: result.website || new URL(feedUrl).origin,
     notes: `${result.description || "Found in Feedly's public feed directory."}${subscriberText}`.trim(),
     tags,
-    added: installedUrls.has(feedUrl.toLowerCase())
+    ...installedState(feedUrl, installedFeeds)
   };
 }
 
@@ -646,8 +646,20 @@ function mergeSuggestions(...groups) {
   return merged;
 }
 
-function getInstalledUrls() {
-  return new Set(listFeeds().map((feed) => feed.url.toLowerCase()));
+function getInstalledFeedMap() {
+  return new Map(listFeeds().map((feed) => [feed.url.toLowerCase(), feed]));
+}
+
+function installedState(url, installedFeeds) {
+  const feed = installedFeeds.get(String(url).toLowerCase());
+
+  return {
+    added: Boolean(feed),
+    addedFeedId: feed?.id || "",
+    addedCategoryId: feed?.category_id || "",
+    addedCategoryName: feed?.category_name || "",
+    addedFeedTitle: feed?.title || ""
+  };
 }
 
 function isBlockedHost(hostname) {

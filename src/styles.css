@@ -214,6 +214,36 @@ select {
   padding: 0 10px;
 }
 
+.source-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.source-item {
+  border: 1px solid #e5e0d7;
+  border-radius: 6px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+}
+
+.source-item span {
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.source-item small,
+.source-empty {
+  color: #667085;
+  font-size: 12px;
+}
+
+.source-empty {
+  margin: 0;
+}
+
 textarea,
 .stacked-form input {
   margin-top: 5px;
@@ -263,6 +293,29 @@ textarea {
 .discovery-panel h3 {
   font-size: 13px;
   margin: 0;
+}
+
+.discovery-target,
+.feed-notice,
+.added-detail {
+  color: #5f6876;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.feed-notice {
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #166534;
+  padding: 9px 10px;
+}
+
+.added-detail {
+  color: #166534;
+  font-weight: 700;
+  margin-top: 6px;
 }
 
 .discovery-search {

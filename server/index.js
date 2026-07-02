@@ -10,10 +10,12 @@ import {
   createFeed,
   deleteCategory,
   getDashboardMeta,
+  getDbPath,
   getLearningQueue,
   listArticles,
   updateArticleStatus,
-  updateCategory
+  updateCategory,
+  updateFeedCategory
 } from "./db.js";
 import { seedFeeds } from "./seed.js";
 
@@ -29,8 +31,11 @@ const shouldServeStatic =
 
 app.use(express.json());
 
-const seedResult = seedFeeds();
-console.log(`RSS dashboard using ${seedResult.dbPath}`);
+if (process.env.SEED_ON_START === "true") {
+  const seedResult = seedFeeds();
+  console.log(`Seeded ${seedResult.categories} starter categories and ${seedResult.feeds} feeds.`);
+}
+console.log(`RSS dashboard using ${getDbPath()}`);
 
 let fetchInProgress = false;
 let lastFetchSummary = null;
@@ -142,6 +147,19 @@ app.delete("/api/categories/:id", (req, res, next) => {
 app.post("/api/feeds", (req, res, next) => {
   try {
     res.status(201).json(createFeed(req.body || {}));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/feeds/:id", (req, res, next) => {
+  try {
+    const feed = updateFeedCategory(req.params.id, req.body?.categoryId);
+    if (!feed) {
+      res.status(404).json({ error: "Feed not found." });
+      return;
+    }
+    res.json(feed);
   } catch (error) {
     next(error);
   }
